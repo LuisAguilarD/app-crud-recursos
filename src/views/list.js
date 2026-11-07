@@ -8,6 +8,47 @@ export function getLabel(lista, value) {
   return item ? item.label : value;
 }
 
+// Despliega una ventana modal personalizada para confirmar la eliminación de un recurso
+function showConfirmModal(title) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = `
+      <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <h3 id="modal-title">Eliminar recurso</h3>
+        <p>¿Seguro que quieres eliminar «${title}»? Esta acción no se puede deshacer.</p>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-action="cancel">Cancelar</button>
+          <button type="button" class="btn btn-danger" data-action="confirm">Sí, eliminar</button>
+        </div>
+      </div>
+    `;
+
+    const close = (result) => {
+      document.removeEventListener('keydown', handleKey);
+      overlay.remove();
+      resolve(result);
+    };
+
+    const handleKey = (e) => {
+      if (e.key === 'Escape') {
+        close(false);
+      }
+    };
+
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay || e.target.closest('[data-action="cancel"]')) {
+        close(false);
+      } else if (e.target.closest('[data-action="confirm"]')) {
+        close(true);
+      }
+    });
+
+    document.addEventListener('keydown', handleKey);
+    document.body.appendChild(overlay);
+  });
+}
+
 // Renderiza la vista con el catálogo de recursos ordenados cronológicamente
 export function renderList(app) {
   const resources = getAll();
@@ -85,7 +126,7 @@ export function renderList(app) {
   // Delegación de eventos sobre el contenedor del listado
   const listContainer = app.querySelector('.resource-grid');
   if (listContainer) {
-    listContainer.addEventListener('click', (event) => {
+    listContainer.addEventListener('click', async (event) => {
       const deleteButton = event.target.closest('button[data-id]');
       if (!deleteButton) {
         return;
@@ -95,7 +136,7 @@ export function renderList(app) {
       const resource = sortedResources.find((item) => item.id === id);
       const title = resource ? resource.titulo : (deleteButton.dataset.title || '');
 
-      const isConfirmed = confirm(`¿Estás seguro de que deseas eliminar "${title}"? Esta acción no se puede deshacer.`);
+      const isConfirmed = await showConfirmModal(title);
       if (!isConfirmed) {
         showToast('Eliminación cancelada');
         return;
