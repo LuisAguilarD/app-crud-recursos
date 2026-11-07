@@ -1,5 +1,6 @@
-import { getAll } from '../services/storage.js';
+import { getAll, remove } from '../services/storage.js';
 import { TIPOS, TEMAS, NIVELES } from '../data/options.js';
+import { showToast } from '../components/toast.js';
 
 // Retorna el label legible de una opción según su value
 export function getLabel(lista, value) {
@@ -53,7 +54,17 @@ export function renderList(app) {
               </div>
               <div class="resource-footer">
                 <time class="resource-date">${formattedDate}</time>
-                <a href="#/editar/${resource.id}" class="btn btn-secondary">Editar</a>
+                <div class="resource-actions" style="display: flex; gap: 0.5rem;">
+                  <a href="#/editar/${resource.id}" class="btn btn-secondary">Editar</a>
+                  <button
+                    type="button"
+                    class="btn btn-danger"
+                    data-id="${resource.id}"
+                    data-title="${resource.titulo}"
+                  >
+                    Eliminar
+                  </button>
+                </div>
               </div>
             </div>
           `;
@@ -70,4 +81,34 @@ export function renderList(app) {
       ${content}
     </div>
   `;
+
+  // Delegación de eventos sobre el contenedor del listado
+  const listContainer = app.querySelector('.resource-grid');
+  if (listContainer) {
+    listContainer.addEventListener('click', (event) => {
+      const deleteButton = event.target.closest('button[data-id]');
+      if (!deleteButton) {
+        return;
+      }
+
+      const id = deleteButton.dataset.id;
+      const resource = sortedResources.find((item) => item.id === id);
+      const title = resource ? resource.titulo : (deleteButton.dataset.title || '');
+
+      const isConfirmed = confirm(`¿Estás seguro de que deseas eliminar "${title}"? Esta acción no se puede deshacer.`);
+      if (!isConfirmed) {
+        showToast('Eliminación cancelada');
+        return;
+      }
+
+      const isRemoved = remove(id);
+      if (isRemoved) {
+        showToast('Recurso eliminado');
+      } else {
+        showToast('Recurso no encontrado', 'error');
+      }
+
+      renderList(app);
+    });
+  }
 }

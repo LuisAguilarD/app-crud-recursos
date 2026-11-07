@@ -52,6 +52,19 @@ export function update(id, data) {
   return recursoActualizado;
 }
 
+// Busca el índice con findIndex; si existe elimina con splice, guarda y devuelve true, si no false
+export function remove(id) {
+  const resources = getAll();
+  const index = resources.findIndex((item) => item.id === id);
+  if (index === -1) {
+    return false;
+  }
+
+  resources.splice(index, 1);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(resources));
+  return true;
+}
+
 // Calcula estadísticas del catálogo: total, favoritos (vía filter) y temas distintos (vía Set)
 export function getStats() {
   const resources = getAll();
